@@ -2,7 +2,17 @@
 
 import inspect
 
-PATTERNS = ["site-packages", "py.test", "nplusone", "middleware", "__init__"]
+PATTERNS = [
+    "site-packages",
+    "py.test",
+    "nplusone",
+    "middleware",
+    "__init__",
+    "tests",
+    "patchers",
+    "python3.9",
+    "manage",
+]
 
 
 def get_caller(patterns=None):
