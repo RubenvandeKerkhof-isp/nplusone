@@ -2,7 +2,7 @@
 
 import inspect
 
-PATTERNS = ['site-packages', 'py.test', 'nplusone']
+PATTERNS = ["site-packages", "py.test", "nplusone", "middleware", "__init__"]
 
 
 def get_caller(patterns=None):
@@ -10,7 +10,8 @@ def get_caller(patterns=None):
     patterns = patterns or PATTERNS
     return next(
         (
-            each for each in frames
+            each
+            for each in frames
             if each[4] and not any(pattern in each[1] for pattern in patterns)
         ),
         None,

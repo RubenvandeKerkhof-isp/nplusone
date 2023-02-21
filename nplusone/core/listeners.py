@@ -9,7 +9,6 @@ from nplusone.core.stack import get_caller
 
 
 class Rule(object):
-
     def __init__(self, label=None, model=None, field=None):
         self.label = label
         self.model = model
@@ -17,25 +16,23 @@ class Rule(object):
 
     def compare(self, label, model, field):
         return (
-            (self.label or self.model or self.field) and
-            (self.label is None or self.label == label) and
-            (self.model is None or self.match_model(model)) and
-            (self.field is None or self.field == field)
+            (self.label or self.model or self.field)
+            and (self.label is None or self.label == label)
+            and (self.model is None or self.match_model(model))
+            and (self.field is None or self.field == field)
         )
 
     def match_model(self, model):
-        return (
-            self.model is model or (
-                isinstance(self.model, six.string_types) and
-                fnmatch.fnmatch(model.__name__, self.model)
-            )
+        return self.model is model or (
+            isinstance(self.model, six.string_types)
+            and fnmatch.fnmatch(model.__name__, self.model)
         )
 
 
 class Message(object):
 
-    label = ''
-    formatter = ''
+    label = ""
+    formatter = ""
 
     def __init__(self, model, field):
         self.model = model
@@ -52,24 +49,22 @@ class Message(object):
         )
 
     def match(self, rules):
-        return any(
-            rule.compare(self.label, self.model, self.field)
-            for rule in rules
-        )
+        return any(rule.compare(self.label, self.model, self.field) for rule in rules)
 
 
 class LazyLoadMessage(Message):
-    label = 'n_plus_one'
-    formatter = 'Potential n+1 query detected on `{model}.{field}` at {caller}'
+    label = "n_plus_one"
+    formatter = "Potential n+1 query detected on `{model}.{field}` at {caller}"
 
 
 class EagerLoadMessage(Message):
-    label = 'unused_eager_load'
-    formatter = 'Potential unnecessary eager load detected on `{model}.{field}`'
+    label = "unused_eager_load"
+    formatter = (
+        "Potential unnecessary eager load detected on `{model}.{field} at {caller}`"
+    )
 
 
 class Listener(object):
-
     def __init__(self, parent):
         self.parent = parent
 
@@ -81,25 +76,27 @@ class Listener(object):
 
 
 class LazyListener(Listener):
-
     def setup(self):
         self.loaded, self.ignore = set(), set()
         signals.load.connect(self.handle_load, sender=signals.get_worker())
         signals.ignore_load.connect(self.handle_ignore, sender=signals.get_worker())
         signals.lazy_load.connect(self.handle_lazy, sender=signals.get_worker())
 
-    def handle_load(self, caller, args=None, kwargs=None, context=None, ret=None,
-                    parser=None):
+    def handle_load(
+        self, caller, args=None, kwargs=None, context=None, ret=None, parser=None
+    ):
         instances = parser(args, kwargs, context, ret)
         self.loaded.update(instances)
 
-    def handle_ignore(self, caller, args=None, kwargs=None, context=None, ret=None,
-                      parser=None):
+    def handle_ignore(
+        self, caller, args=None, kwargs=None, context=None, ret=None, parser=None
+    ):
         instances = parser(args, kwargs, context, ret)
         self.ignore.update(instances)
 
-    def handle_lazy(self, caller, args=None, kwargs=None, context=None, ret=None,
-                    parser=None):
+    def handle_lazy(
+        self, caller, args=None, kwargs=None, context=None, ret=None, parser=None
+    ):
         model, instance, field = parser(args, kwargs, context)
         if instance in self.loaded and instance not in self.ignore:
             message = LazyLoadMessage(model, field)
@@ -107,7 +104,6 @@ class LazyListener(Listener):
 
 
 class EagerListener(Listener):
-
     def setup(self):
         signals.eager_load.connect(self.handle_eager, sender=signals.get_worker())
         self.tracker = EagerTracker()
@@ -116,13 +112,15 @@ class EagerListener(Listener):
     def teardown(self):
         self.log_eager()
 
-    def handle_eager(self, caller, args=None, kwargs=None, context=None, ret=None,
-                     parser=None):
+    def handle_eager(
+        self, caller, args=None, kwargs=None, context=None, ret=None, parser=None
+    ):
         self.tracker.track(*parser(args, kwargs, context))
         signals.touch.connect(self.handle_touch, sender=signals.get_worker())
 
-    def handle_touch(self, caller, args=None, kwargs=None, context=None, ret=None,
-                     parser=None):
+    def handle_touch(
+        self, caller, args=None, kwargs=None, context=None, ret=None, parser=None
+    ):
         self.touched.append(parser(args, kwargs, context))
 
     def log_eager(self):
@@ -137,6 +135,7 @@ class EagerTracker(object):
     related rows. Eager-loaded rows are stored in a dict mapping associations
     to nested dicts mapping query keys to instances.
     """
+
     def __init__(self):
         self.data = defaultdict(lambda: defaultdict(set))
 
@@ -152,14 +151,10 @@ class EagerTracker(object):
 
     @property
     def unused(self):
-        return [
-            (model, field)
-            for (model, field), group in self.data.items()
-            if group
-        ]
+        return [(model, field) for (model, field), group in self.data.items() if group]
 
 
 listeners = {
-    'lazy_load': LazyListener,
-    'eager_load': EagerListener,
+    "lazy_load": LazyListener,
+    "eager_load": EagerListener,
 }
